@@ -7,7 +7,7 @@
 //Colocar aqui os dados do servidor
 #define WIFI_AP "CARLOS ADP"
 #define WIFI_PASSWORD "12991308"
-char server[50] = "192.168.1.113";
+char server[50] = "192.168.1.106";
 
 WiFiEspClient espClient;
 PubSubClient client(espClient);
@@ -27,42 +27,10 @@ DHT dht(DHTPIN, DHTTYPE);
 unsigned long lastSend;
 int status = WL_IDLE_STATUS;
 
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i=0;i<length;i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
-}
+int led = 7;
 
-void setup() {
-    Serial.begin(9600);
-    InitWiFi();
-    client.setServer( server, 1883 );
-    client.setCallback(callback);
-    lastSend = 0;
-    dht.begin();
-
-    client.subscribe("receiveDataLed");
-}
-
-void loop() {
-    status = WiFi.status();
-    if(status != WL_CONNECTED) {
-        reconnectWifi();
-    }
-    if(!client.connected() ) {
-        reconnectClient();
-    }
-    if(millis() - lastSend > 2000 ) {
-        sendDataTemperature();
-        sendDataDHTemperature();
-        sendDataDHumidity();
-        lastSend = millis();
-    }
-    client.loop();
+void messageReceived(String &topic, String &payload) {
+ Serial.println("incoming: " + topic + " - " + payload);
 }
 
 void sendDataDHTemperature()
@@ -145,4 +113,34 @@ void reconnectClient() {
             delay( 2000 );
         }
     }
+}
+
+void setup() {
+    delay(1000);
+    Serial.begin(9600);
+    InitWiFi();
+    client.setServer( server, 1883 );
+    client.setCallback(messageReceived);
+    lastSend = 0;
+    dht.begin();
+
+    pinMode(led, OUTPUT);
+    digitalWrite(led, HIGH);
+}
+
+void loop() {
+    status = WiFi.status();
+    if(status != WL_CONNECTED) {
+        reconnectWifi();
+    }
+    if(!client.connected() ) {
+        reconnectClient();
+    }
+    if(millis() - lastSend > 2000 ) {
+        sendDataTemperature();
+        sendDataDHTemperature();
+        sendDataDHumidity();
+        lastSend = millis();
+    }
+    client.loop();
 }
