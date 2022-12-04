@@ -1,0 +1,210 @@
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <title>Smart Drawer Medicine</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.1.js" integrity="sha256-3zlB5s2uwoUzrXK3BT7AX3FyvojsraNFxCc2vC/7pNI=" crossorigin="anonymous"></script>
+</head>
+<body>
+  <section class='dashboard' id='dashboard'>
+  <div class="wrapper">
+        <!--Top menu -->
+        <div class="sidebar">
+           <div class="profile">
+                <img src="https://imgs.search.brave.com/Rq941xC6Cq5uOHAB7tmJrV0soe9NvUq0NpdSBFB1qyc/rs:fit:593:589:1/g:ce/aHR0cHM6Ly93d3cu/Y29sZWdpb2NvZ25v/cy5jb20uYnIvd3At/Y29udGVudC91cGxv/YWRzLzIwMjAvMDgv/ZXNzYS1wZXNzb2Et/bmFvLWV4aXN0ZTIu/anBlZw" alt="profile_picture">
+                <h3>{{ nome | safe }}</h3>
+                <h5>{{ telefone | safe }}</h5>
+                <a href="/getReport" class="button">Download do Relatório</a>
+                <p id="id01"> A gaveta está {{ drawerState | safe}} </p>
+            </div>
+          
+            <!--menu item-->
+        </div>
+
+    <div class="column">
+      <div id="myDiv"></div>
+      <div id="myDiv2"></div>
+    </div>
+    
+  <script>    
+    var datas = {{datasJSON | safe}};
+    var temp = {{tempJSON | safe}};
+    var umid = {{umidJSON | safe}};
+    
+    var traceTemp = {        
+      x: datas,        
+      y: temp,        
+      mode: 'line',
+      name: 'Temperatura'
+    };
+
+    var concernTempLine = {
+      type: 'scatter',
+      x: datas,
+      y: Array(datas.length).fill(30),
+      mode: 'lines',
+      name: 'concernTempLine',
+      line: {
+        dash: 'dot',
+        color: 'rgb(255, 0, 0)',
+        width: 2
+      }
+    };
+    
+    var layout1 = {
+      title:'Relatório temporal da temperatura',
+      yaxis: {
+        title: 'Temperatura (ºC)',
+        showline: false
+      }
+    };
+
+    
+    // Humidity
+    
+    var traceUmid = {        
+      x: datas,        
+      y: umid,        
+      mode: 'line',
+      name: 'Umidade'
+    };
+
+
+    var concernHumidLine = {
+      type: 'scatter',
+      x: datas,
+      y: Array(datas.length).fill(40),
+      mode: 'lines',
+      name: 'concernHumidLine',
+      line: {
+        dash: 'dot',
+        color: 'rgb(255, 0, 0)',
+        width: 2
+      }
+    };
+
+    var layout2 = {
+      title:'Relatório temporal da umidade',
+      yaxis: {
+        title: 'Umidade Relativa (%)',
+        showline: false
+      }
+    };
+    
+    Plotly.newPlot('myDiv', [ traceTemp, concernTempLine ], layout1);
+    Plotly.newPlot('myDiv2', [ traceUmid, concernHumidLine ], layout2);
+    
+    
+$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+    
+$(document).ready(function(){
+  
+    function _update_time() { 
+        $.getJSON(
+            $SCRIPT_ROOT+"/data",
+            function(data) { 
+
+    traceTemp['x'] = data[0].split(',');
+    traceTemp['y'] = data[1].split(',');
+
+    traceTemp['x'].forEach( (item, i, self) => self[i] = item.replaceAll("[","").replaceAll("]","").replaceAll("'","").replaceAll('"','') );
+    
+    traceTemp['y'].forEach( (item, i, self) => self[i] = parseFloat(item.replace("[","").replace("'","")) );
+
+    
+      var dataTemp = {
+        x: traceTemp['x'],
+        y: traceTemp['y'],
+        type: 'scatter',
+        name: 'Temperatura'
+      };  
+      var concernTempLine = {
+      type: 'scatter',
+      x: traceTemp['x'],
+      y: Array(traceTemp['x'].length).fill(30),
+      mode: 'lines',
+      name: 'Limiar',
+      line: {
+        dash: 'dot',
+        color: 'rgb(255, 0, 0)',
+        width: 2
+      }
+    };
+      
+              
+      Plotly.react('myDiv', [ dataTemp, concernTempLine ], layout1);  
+      });
+
+      
+    }
+    // do a first call at load time
+    _update_time();
+    // then repeat it every second
+    window.setInterval(_update_time, 8000);
+});
+
+$(document).ready(function(){
+  
+    function _update_timeHumid() { 
+        $.getJSON(
+            $SCRIPT_ROOT+"/data",
+            function(data) { 
+
+    traceTemp['x'] = data[0].split(',');
+    traceUmid['y'] = data[2].split(',');
+
+    traceTemp['x'].forEach( (item, i, self) => self[i] = item.replaceAll("[","").replaceAll("]","").replaceAll("'","").replaceAll('"','') );
+    
+    traceUmid['y'].forEach( (item, i, self) => self[i] = parseFloat(item.replace("[","").replace("'","")) );
+
+    
+      var dataHumid = {
+        x: traceTemp['x'],
+        y: traceUmid['y'],
+        type: 'scatter',
+        name: 'Umidade'
+      };  
+      var concernHumidLine = {
+      type: 'scatter',
+      x: traceTemp['x'],
+      y: Array(traceTemp['x'].length).fill(40),
+      mode: 'lines',
+      name: 'Limiar',
+      line: {
+        dash: 'dot',
+        color: 'rgb(255, 0, 0)',
+        width: 2
+      }
+    };
+              
+      Plotly.react('myDiv2', [ dataHumid, concernHumidLine ], layout2);  
+      });
+    }
+    
+    // do a first call at load time
+    _update_timeHumid();
+    // then repeat it every second
+    window.setInterval(_update_timeHumid, 8000);
+});
+
+
+$(document).ready(function(){
+  function update_text() { 
+      $.getJSON(
+        $SCRIPT_ROOT+"/data",
+        function(data) { 
+          document.getElementById("id01").textContent = "A gaveta está "+data[3];
+      });
+    }
+    // do a first call at load time
+    update_text();
+    // then repeat it every second
+    window.setInterval(update_text, 8000);
+});
+
+  </script>
+  </section>
+</body>
+</html>
